@@ -1,0 +1,11 @@
+# Ignore the "test_footage" folder
+test_footage/
+
+# Ignore the "diagram.png" file
+diagram.png
+
+# Ignore the "test.py" file
+test.py
+
+# Ignore the "Signal Processing.ipynb" file
+Signal Processing.ipynb
