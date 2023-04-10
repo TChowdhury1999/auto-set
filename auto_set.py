@@ -11,10 +11,12 @@ import cv2
 import mediapipe as mp
 import numpy as np
 import pandas as pd
+import statsmodels.api as sm
+import matplotlib.pyplot as plt
 
 from scipy.signal import find_peaks
 from scipy.signal import savgol_filter
-
+from matplotlib.animation import FuncAnimation
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -43,6 +45,11 @@ def get_fps(path):
     fps = cap.get(cv2.CAP_PROP_FPS)
     
     return fps
+
+
+fourcc = cv2.VideoWriter_fourcc(*'XVID')
+out = cv2.VideoWriter('output.avi', fourcc, 60.0, (640, 480))
+
 
 def generate_landmarks(path, show_video=False):
     """
@@ -105,8 +112,12 @@ def generate_landmarks(path, show_video=False):
             cv2.imshow('MediaPipe Pose', image)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
+            
+            # Write the current frame to the video file
+            out.write(image)
       
     cap.release()
+    out.release()
     cv2.destroyAllWindows()
     
     return landmarks
@@ -404,8 +415,8 @@ def get_rep_df(x, fps, height_tolerance=0.7, period_tolerance = 0.7):
     # smooth the data
     x = savgol_filter(x,71,2)
     
-    # set the min period as 2s which is fps*2
-    period = int(2*fps)
+    # set the min period as 1.5s which is fps*1.5
+    period = int(1.5*fps)
     
     # find the peaks in the signal
     rep_peaks, _ = find_peaks(x, height = height_tolerance, distance = period * period_tolerance)
@@ -415,6 +426,20 @@ def get_rep_df(x, fps, height_tolerance=0.7, period_tolerance = 0.7):
     flipped_data = np.interp(flipped_data, (flipped_data.min(), flipped_data.max()), (0, 1))
     # height tolerance is a bit more leniant for troughs
     troughs, _ = find_peaks(flipped_data, distance  = period * period_tolerance, height=height_tolerance-0.1)
+    
+    # some consecutive peaks are just flat regions 
+    # make sure there is a trough between peaks else the two peaks merge
+    # iterate through the peaks list
+    i = 0
+    while i < len(rep_peaks) - 1:
+        # check if there are any troughs between the current and next peak
+        if not any(rep_peaks[i] < t < rep_peaks[i+1] for t in troughs):
+            # if there are no troughs, remove the next peak
+            rep_peaks = np.delete(rep_peaks, i+1)
+        else:
+            # otherwise, move to the next peak
+            i += 1
+    
     
     # troughs either side of rep peaks are the rep starts and ends
     # Create boolean masks indicating valid troughs for each peak
@@ -486,6 +511,52 @@ def intensity_check(rep_timing_df):
     
     return ratio
 
+def pretty_plot(points, fps, save=False):
+    """
+    Plots a nice graph of the workout
+    """
+    # define the time axis
+    t = np.arange(len(points))
+    
+    # smooth out plot with lowess
+    smooth_arr = sm.nonparametric.lowess(points, t, frac=0.01)
+    
+    # create plot
+    fig, ax = plt.subplots()
+    line, = ax.plot([], [], lw=2, color='#001933')
+    
+    # Remove bounding box
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    
+    # Set font
+    plt.rcParams['font.family'] = 'Impact'
+    
+    # Remove y-axis
+    ax.get_yaxis().set_visible(False)
+    
+    # Set x-axis label and thick ticks
+    ax.set_xlabel('Time')
+    ax.tick_params(axis='x', which='both', width=2)
+    
+    # Define the update function for the animation
+    def update(frame):
+        xdata = t[:frame+1]
+        ydata = smooth_arr[:,1][:frame+1]
+        line.set_data(xdata, ydata)
+        ax.set_xlim(0, t[-1])  # set x-axis limits
+        ax.set_ylim(smooth_arr[:,1].min(), smooth_arr[:,1].max())  # set y-axis limits
+        return line,
+    
+    # plt.plot(t, smooth_arr[:,1])
+    
+    # Create the animation
+    ani = FuncAnimation(fig, update, frames=len(t), blit=True, interval=int(1000/fps))
+    if save:
+        ani.save("animation.mp4")
+    plt.show()
+
 def analyse_video(path, concentric_first = False, show_video = False, height_tolerance = 0.7, period_tolerance = 0.7, debug=False):
     
     # first generate the landmarks for each body part for each frame
@@ -514,7 +585,7 @@ def analyse_video(path, concentric_first = False, show_video = False, height_tol
 #%%
 path = tricep_path = 'test_footage/tricep_pushdown_test.mp4' # 7 reps
 path = leg_press_path = 'test_footage/leg_press_test.mp4' # 7 reps
-path = lat_pulldown_path = 'test_footage/lat_pulldown_test.mp4' # 5 reps
+path = lat_pulldown_path = 'test_footage/lat_pulldown_test.mp4' # 6 reps
 path = pendulum_squat_path = 'test_footage/pendulum_squat_test.mp4' # 4 reps
 path = lateral_raise_path = "test_footage/lateral_raise_test.mp4" # 4 reps
 path = machine_press_path = "test_footage/machine_press_test.mp4" # 7 reps
@@ -542,3 +613,47 @@ rep_time_df = get_rep_timing_df(rep_df, fps)
 print(rep_time_df)
 
 # period leniancy should be adjusted based on fps
+
+
+#%%
+
+# define the time axis
+t = np.arange(len(points))
+
+# smooth out plot with lowess
+smooth_arr = sm.nonparametric.lowess(points, t, frac=0.01)
+
+# create plot
+fig, ax = plt.subplots()
+line, = ax.plot([], [], lw=2, color='#001933')
+
+# Remove bounding box
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.spines['left'].set_visible(False)
+
+# Set font
+plt.rcParams['font.family'] = 'Impact'
+
+# Remove y-axis
+ax.get_yaxis().set_visible(False)
+
+# Set x-axis label and thick ticks
+ax.set_xlabel('Time')
+ax.tick_params(axis='x', which='both', width=2)
+
+# Define the update function for the animation
+def update(frame):
+    xdata = t[:frame+1]
+    ydata = smooth_arr[:,1][:frame+1]
+    line.set_data(xdata, ydata)
+    ax.set_xlim(0, t[-1])  # set x-axis limits
+    ax.set_ylim(smooth_arr[:,1].min(), smooth_arr[:,1].max())  # set y-axis limits
+    return line,
+
+# plt.plot(t, smooth_arr[:,1])
+
+# Create the animation
+ani = FuncAnimation(fig, update, frames=len(t), blit=True, interval=int(1000/fps))
+ani.save("animation.gif")
+plt.show()
