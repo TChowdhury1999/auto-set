@@ -1,7 +1,9 @@
 # auto-set
 auto-set is a Python library that analyzes workout videos and returns a DataFrame of rep time information.
 
-https://github.com/TChowdhury1999/auto-set/blob/main/example.mp4
+
+https://user-images.githubusercontent.com/48531291/231286382-23db1e1a-f254-495e-810d-65a7e9069f4a.mp4
+
 
 ## Usage
 `
