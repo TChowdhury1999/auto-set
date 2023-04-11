@@ -419,7 +419,7 @@ def get_rep_df(x, fps, height_tolerance=0.7, period_tolerance = 0.7):
     period = int(1.5*fps)
     
     # find the peaks in the signal
-    rep_peaks, _ = find_peaks(x, height = height_tolerance, distance = period * period_tolerance)
+    rep_peaks, _ = find_peaks(x, height = height_tolerance, distance = int(period * period_tolerance))
     
     # now find the troughs on smoothed data that has been normalised
     flipped_data = -x
@@ -558,6 +558,30 @@ def pretty_plot(points, fps, save=False):
     plt.show()
 
 def analyze_video(path, concentric_first = False, show_video = False, height_tolerance = 0.7, period_tolerance = 0.7, debug=False):
+    """
+    Return a rep timing DataFrame of the video at path. 
+
+    Parameters
+    ----------
+    path : str
+        path to video.
+    concentric_first : bool, optional
+        Set to true if concentric of movement is the first phase. The default is False.
+    show_video : bool, optional
+        Set to true to preview video with pose estimation. The default is False.
+    height_tolerance : float [0,1], optional
+        Leniancy on rep range of motion relative to largest rep. The default is 0.7.
+    period_tolerance : float [0,1], optional
+        Leniancy on rep separation. The default is 0.7.
+    debug : bool, optional
+        Returns the points array of the movement in addition. The default is False.
+
+    Returns
+    -------
+    rep_time_df : pandas DataFrame
+        Dataframe of eccentric and concentric times.
+
+    """
     
     # first generate the landmarks for each body part for each frame
     landmarks = generate_landmarks(path, show_video)
@@ -568,11 +592,11 @@ def analyze_video(path, concentric_first = False, show_video = False, height_tol
     # get the points of the moving visible body part from the video
     points = moving_part_points(x, y, visibility)
     
-    # get the rep DataFrame which has start, peak and end of rep frames
-    rep_df = get_rep_df(points, height_tolerance, period_tolerance)
-    
     # get the fps of the video
     fps = get_fps(path)
+    
+    # get the rep DataFrame which has start, peak and end of rep frames
+    rep_df = get_rep_df(points, fps, height_tolerance, period_tolerance)
     
     # convert the rep_df from frame to time
     rep_time_df = get_rep_timing_df(rep_df, fps, concentric_first)
