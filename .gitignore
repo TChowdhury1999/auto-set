@@ -1,6 +1,12 @@
 # Ignore the "test_footage" folder
 test_footage/
 
+.ipyb_checkpoints
+animation.gif
+ezgif-4-5e41cce892.mp4
+MediaPipe Pose 2023-04-10 20-21-51.mp4
+output.avi
+
 # Ignore the "diagram.png" file
 diagram.png
 
