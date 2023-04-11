@@ -557,7 +557,7 @@ def pretty_plot(points, fps, save=False):
         ani.save("animation.mp4")
     plt.show()
 
-def analyse_video(path, concentric_first = False, show_video = False, height_tolerance = 0.7, period_tolerance = 0.7, debug=False):
+def analyze_video(path, concentric_first = False, show_video = False, height_tolerance = 0.7, period_tolerance = 0.7, debug=False):
     
     # first generate the landmarks for each body part for each frame
     landmarks = generate_landmarks(path, show_video)
@@ -582,78 +582,3 @@ def analyse_video(path, concentric_first = False, show_video = False, height_tol
     
     return rep_time_df
 
-#%%
-path = tricep_path = 'test_footage/tricep_pushdown_test.mp4' # 7 reps
-path = leg_press_path = 'test_footage/leg_press_test.mp4' # 7 reps
-path = lat_pulldown_path = 'test_footage/lat_pulldown_test.mp4' # 6 reps
-path = pendulum_squat_path = 'test_footage/pendulum_squat_test.mp4' # 4 reps
-path = lateral_raise_path = "test_footage/lateral_raise_test.mp4" # 4 reps
-path = machine_press_path = "test_footage/machine_press_test.mp4" # 7 reps
-path = rdl_path = "test_footage/rdl_test.mp4" # 5 reps
-
-#%%
-# first generate the landmarks for each body part for each frame
-landmarks = generate_landmarks(path, False)
-
-# extract the points in space and visibility for each body part
-x, y, z, visibility = get_points(landmarks)
-
-# get the points of the moving visible body part from the video
-points = moving_part_points(x, y, visibility)
-
-# get the fps of the video
-fps = get_fps(path)
-
-# get the rep DataFrame which has start, peak and end of rep frames
-rep_df = get_rep_df(points, fps)
-
-# convert the rep_df from frame to time
-rep_time_df = get_rep_timing_df(rep_df, fps)
-
-print(rep_time_df)
-
-# period leniancy should be adjusted based on fps
-
-
-#%%
-
-# define the time axis
-t = np.arange(len(points))
-
-# smooth out plot with lowess
-smooth_arr = sm.nonparametric.lowess(points, t, frac=0.01)
-
-# create plot
-fig, ax = plt.subplots()
-line, = ax.plot([], [], lw=2, color='#001933')
-
-# Remove bounding box
-ax.spines['top'].set_visible(False)
-ax.spines['right'].set_visible(False)
-ax.spines['left'].set_visible(False)
-
-# Set font
-plt.rcParams['font.family'] = 'Impact'
-
-# Remove y-axis
-ax.get_yaxis().set_visible(False)
-
-# Set x-axis label and thick ticks
-ax.set_xlabel('Time')
-ax.tick_params(axis='x', which='both', width=2)
-
-# Define the update function for the animation
-def update(frame):
-    xdata = t[:frame+1]
-    ydata = smooth_arr[:,1][:frame+1]
-    line.set_data(xdata, ydata)
-    ax.set_xlim(0, t[-1])  # set x-axis limits
-    ax.set_ylim(smooth_arr[:,1].min(), smooth_arr[:,1].max())  # set y-axis limits
-    return line,
-
-# plt.plot(t, smooth_arr[:,1])
-
-# Create the animation
-ani = FuncAnimation(fig, update, frames=len(t), blit=True, interval=int(1000/fps))
-ani.save("animation.gif")
-plt.show()
