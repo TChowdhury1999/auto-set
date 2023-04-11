@@ -10,7 +10,7 @@ https://user-images.githubusercontent.com/48531291/231286382-23db1e1a-f254-495e-
 from auto-set import analyze_video
 
 path = 'path/to/workout.mp4'
-result = auto_set.analyze_video(path)
+result = analyze_video(path)
 ```
 
 The function will return a pandas DataFrame with the columns:
@@ -30,7 +30,7 @@ To obtain the rep timing for the lat-pulldown video above:
 from auto-set import analyze_video
 
 path = 'path/to/lat_pulldown_video.mp4'
-result = auto_set.analyze_video(path, concentric_first = True, show_video = True)
+result = analyze_video(path, concentric_first = True, show_video = True)
 ```
 
 which returns the DataFrame
